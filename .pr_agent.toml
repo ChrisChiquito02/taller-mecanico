@@ -1,0 +1,21 @@
+[config]
+model = "gpt-4o-mini"
+fallback_models = ["gpt-4o-mini"]
+response_language = "Spanish"
+
+[pr_reviewer]
+require_tests_review = false
+require_estimate_effort_to_review = true
+extra_instructions = """
+Revisa este sistema de taller mecánico con Spring Boot, React, MySQL y Docker.
+Prioriza defectos concretos en autorización ADMIN/RECEPCIONISTA, validación en frontend y backend,
+duplicados e idempotencia, transacciones y persistencia, exposición de credenciales/datos personales,
+subida y acceso a fotos, consultas paginadas, UUIDv7 con fecha, integración de PostalKit,
+y compatibilidad entre API, frontend y docker-compose. Señala únicamente hallazgos accionables
+que estén introducidos por el pull request, explica impacto y ubica archivo/línea. No inventes
+requisitos ni recomiendes funcionalidades que el cambio no necesita.
+"""
+
+[pr_description]
+generate_ai_title = false
+generate_ai_type = false
