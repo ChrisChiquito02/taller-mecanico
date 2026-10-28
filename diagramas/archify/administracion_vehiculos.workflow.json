@@ -1,0 +1,55 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Consulta y administración de vehículos",
+    "subtitle": "Páginas activas, detalle autenticado, asociación verificable y baja lógica",
+    "output": "diagramas/archify/administracion_vehiculos.workflow.html",
+    "quality_profile": "standard",
+    "visual_preset": "blueprint"
+  },
+  "lanes": [
+    { "id": "personal", "label": "Administrador o recepción" },
+    { "id": "react", "label": "React · administración de vehículos" },
+    { "id": "api", "label": "Spring Boot · autorización y consulta" },
+    { "id": "db", "label": "MySQL · vehículos, clientes y fotos" },
+    { "id": "files", "label": "Volumen Docker · fotografías" }
+  ],
+  "phases": [
+    { "id": "list", "label": "Consulta paginada protegida", "fromCol": 0, "toCol": 1 },
+    { "id": "detail", "label": "Detalle y comprobación de asociación", "fromCol": 2, "toCol": 3 },
+    { "id": "deactivate", "label": "Desactivación lógica", "fromCol": 4, "toCol": 5 }
+  ],
+  "nodes": [
+    { "id": "entry", "lane": "personal", "col": 0, "type": "frontend", "label": "Abrir administración", "width": 170 },
+    { "id": "filters", "lane": "react", "col": 1, "type": "frontend", "label": "Buscar y ordenar ASC o DESC", "width": 190 },
+    { "id": "guard", "lane": "api", "col": 2, "type": "security", "label": "Validar JWT y rol", "width": 160 },
+    { "id": "page_query", "lane": "db", "col": 3, "type": "database", "label": "SELECT activos LIMIT 10", "width": 180 },
+    { "id": "table", "lane": "react", "col": 4, "type": "frontend", "label": "Mostrar fila con acciones", "width": 180 },
+    { "id": "detail", "lane": "api", "col": 5, "type": "backend", "label": "GET detalle activo y cliente", "width": 195 },
+    { "id": "read_photo", "lane": "files", "col": 5, "type": "backend", "label": "Servir foto autenticada", "width": 170 },
+    { "id": "detail_modal", "lane": "react", "col": 5, "type": "frontend", "label": "Modal con ficha y fotos", "width": 180 },
+    { "id": "deactivate_action", "lane": "personal", "col": 4, "type": "frontend", "label": "Confirmar desactivación", "width": 180 },
+    { "id": "status_update", "lane": "db", "col": 5, "type": "database", "label": "status = inactivo", "width": 165 },
+    { "id": "refresh", "lane": "personal", "col": 5, "type": "frontend", "label": "Confirmar baja en listado", "width": 210 },
+    { "id": "deny", "lane": "react", "col": 3, "type": "security", "label": "Denegar rol no autorizado", "width": 185 }
+  ],
+  "edges": [
+    { "from": "entry", "to": "filters", "label": "abrir catálogo", "role": "main" },
+    { "from": "filters", "to": "guard", "label": "page, term, direction", "role": "main" },
+    { "from": "guard", "to": "page_query", "label": "ADMIN o RECEPCIONISTA", "role": "main" },
+    { "from": "guard", "to": "deny", "label": "rol ausente", "role": "error" },
+    { "from": "page_query", "to": "table", "label": "metadatos de página", "role": "return" },
+    { "from": "table", "to": "detail", "label": "consultar ficha", "role": "branch" },
+    { "from": "detail", "to": "read_photo", "label": "archivo ligado a la ficha", "role": "async" },
+    { "from": "read_photo", "to": "detail_modal", "label": "bytes y datos detallados", "role": "return" },
+    { "from": "table", "to": "deactivate_action", "label": "acción de baja", "role": "branch" },
+    { "from": "deactivate_action", "to": "status_update", "label": "DELETE protegido", "role": "main" },
+    { "from": "status_update", "to": "refresh", "label": "baja confirmada", "role": "return" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Lista escalable", "items": ["El servidor limita size a diez y ordena por fecha e ID para evitar orden no determinista.", "La consulta filtra status activo y permite term sobre VIN, placa, marca, modelo y cliente.", "VIN y placa se guardan canónicos, y el detalle muestra ambos para detectar asociaciones equivocadas."] },
+    { "dot": "violet", "title": "Detalle protegido", "items": ["Solo ADMIN y RECEPCIONISTA superan el filtro JWT.", "La ficha devuelve vehículo, estado, cliente asociado, mecánico nullable, UUIDv7 y fotos.", "Cada imagen se entrega por endpoint con token, validación de pertenencia y tipo MIME.", "Un vehículo ya inactivo no puede consultarse desde la lista o detalle activos."] },
+    { "dot": "amber", "title": "Baja lógica", "items": ["La confirmación precede la solicitud DELETE.", "El backend cambia status a inactivo y conserva fila, cliente y fotos.", "La restricción de VIN y placa conserva unicidad incluso tras desactivar.", "El listado se recarga y deja de mostrar el registro sin borrarlo físicamente."] }
+  ]
+}

@@ -1,0 +1,170 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Recuperación de contraseña",
+    "subtitle": "Token temporal de un solo uso, expiración y hash de contraseña",
+    "output": "diagramas/archify/flujo_recuperacion.workflow.html",
+    "quality_profile": "standard",
+    "visual_preset": "blueprint"
+  },
+  "lanes": [
+    {
+      "id": "persona",
+      "label": "Usuario"
+    },
+    {
+      "id": "react",
+      "label": "React · recuperación"
+    },
+    {
+      "id": "spring",
+      "label": "Spring Boot · auth"
+    },
+    {
+      "id": "mysql",
+      "label": "MySQL · token y cuenta"
+    }
+  ],
+  "phases": [
+    {
+      "id": "solicitar",
+      "label": "Solicitar enlace temporal",
+      "fromCol": 0,
+      "toCol": 2
+    },
+    {
+      "id": "restablecer",
+      "label": "Validar y cambiar clave",
+      "fromCol": 3,
+      "toCol": 5
+    }
+  ],
+  "nodes": [
+    {
+      "id": "request",
+      "lane": "persona",
+      "col": 0,
+      "type": "frontend",
+      "label": "Capturar email",
+      "width": 150
+    },
+    {
+      "id": "forgot_form",
+      "lane": "react",
+      "col": 1,
+      "type": "frontend",
+      "label": "POST forgot-password",
+      "width": 150
+    },
+    {
+      "id": "make_token",
+      "lane": "spring",
+      "col": 2,
+      "type": "security",
+      "label": "Generar token",
+      "width": 150
+    },
+    {
+      "id": "store_token",
+      "lane": "mysql",
+      "col": 3,
+      "type": "database",
+      "label": "Guardar hash",
+      "width": 150
+    },
+    {
+      "id": "open_link",
+      "lane": "persona",
+      "col": 4,
+      "type": "frontend",
+      "label": "Abrir enlace",
+      "width": 150
+    },
+    {
+      "id": "reset_form",
+      "lane": "react",
+      "col": 5,
+      "type": "frontend",
+      "label": "POST reset-password",
+      "width": 150
+    },
+    {
+      "id": "validate_token",
+      "lane": "spring",
+      "col": 4,
+      "type": "security",
+      "label": "Validar vigencia",
+      "width": 150
+    },
+    {
+      "id": "save_password",
+      "lane": "mysql",
+      "col": 5,
+      "type": "database",
+      "label": "Cambiar hash BCrypt",
+      "width": 150
+    }
+  ],
+  "edges": [
+    {
+      "from": "request",
+      "to": "forgot_form",
+      "role": "main"
+    },
+    {
+      "from": "forgot_form",
+      "to": "make_token",
+      "role": "main"
+    },
+    {
+      "from": "make_token",
+      "to": "store_token",
+      "label": "guardar solo el hash",
+      "role": "main"
+    },
+    {
+      "from": "store_token",
+      "to": "open_link",
+      "label": "enlace temporal",
+      "role": "return"
+    },
+    {
+      "from": "open_link",
+      "to": "reset_form",
+      "label": "token y nueva clave",
+      "role": "main"
+    },
+    {
+      "from": "reset_form",
+      "to": "validate_token",
+      "role": "main"
+    },
+    {
+      "from": "validate_token",
+      "to": "save_password",
+      "label": "token vigente y no usado",
+      "role": "main"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "Privacidad",
+      "items": [
+        "La API devuelve un mensaje uniforme exista o no el correo",
+        "El token original solo viaja en el enlace, la base conserva SHA-256",
+        "Token expirado o usado no permite otra actualización"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Contraseña nueva",
+      "items": [
+        "La contraseña se valida por tamaño",
+        "BCrypt almacena el valor actualizado",
+        "La vigencia se configura con RESET_TOKEN_MINUTES"
+      ]
+    }
+  ]
+}

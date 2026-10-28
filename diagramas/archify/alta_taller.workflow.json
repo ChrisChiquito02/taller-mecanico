@@ -1,0 +1,202 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Alta de taller mecánico",
+    "subtitle": "Seguridad, validación, RFC único, fotografía e idempotencia",
+    "output": "diagramas/archify/alta_taller.workflow.html",
+    "quality_profile": "standard",
+    "visual_preset": "blueprint"
+  },
+  "lanes": [
+    {
+      "id": "staff",
+      "label": "Administrador o recepcionista"
+    },
+    {
+      "id": "react",
+      "label": "React · alta del taller"
+    },
+    {
+      "id": "spring",
+      "label": "Spring Boot · caso de uso"
+    },
+    {
+      "id": "mysql",
+      "label": "MySQL y volumen Docker"
+    }
+  ],
+  "phases": [
+    {
+      "id": "secure",
+      "label": "Autenticar y autorizar",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "validate",
+      "label": "Validar duplicados y fotografía",
+      "fromCol": 2,
+      "toCol": 3
+    },
+    {
+      "id": "persist",
+      "label": "Construir y guardar agregado",
+      "fromCol": 4,
+      "toCol": 5
+    }
+  ],
+  "nodes": [
+    {
+      "id": "actor",
+      "lane": "staff",
+      "col": 0,
+      "type": "frontend",
+      "label": "Iniciar sesión",
+      "width": 140
+    },
+    {
+      "id": "form",
+      "lane": "react",
+      "col": 1,
+      "type": "frontend",
+      "label": "Capturar taller",
+      "width": 170
+    },
+    {
+      "id": "security",
+      "lane": "spring",
+      "col": 2,
+      "type": "security",
+      "label": "JWT y rol autorizado",
+      "width": 160
+    },
+    {
+      "id": "client_validation",
+      "lane": "react",
+      "col": 3,
+      "type": "security",
+      "label": "Regex, estado, RFC y foto",
+      "width": 170
+    },
+    {
+      "id": "service",
+      "lane": "spring",
+      "col": 4,
+      "type": "backend",
+      "label": "API e idempotencia",
+      "width": 180
+    },
+    {
+      "id": "unique",
+      "lane": "mysql",
+      "col": 4,
+      "type": "database",
+      "label": "RFC único e idempotencia",
+      "width": 180
+    },
+    {
+      "id": "factory",
+      "lane": "spring",
+      "col": 5,
+      "type": "backend",
+      "label": "Factory crea UUIDv7",
+      "width": 160
+    },
+    {
+      "id": "persist",
+      "lane": "mysql",
+      "col": 5,
+      "type": "database",
+      "label": "Guardar taller y foto",
+      "width": 170
+    },
+    {
+      "id": "result",
+      "lane": "react",
+      "col": 5,
+      "type": "frontend",
+      "label": "Modal de éxito o error",
+      "width": 170
+    }
+  ],
+  "edges": [
+    {
+      "from": "actor",
+      "to": "form",
+      "label": "sesión activa",
+      "role": "main"
+    },
+    {
+      "from": "form",
+      "to": "security",
+      "label": "solicitud autenticada",
+      "role": "main"
+    },
+    {
+      "from": "security",
+      "to": "client_validation",
+      "label": "ADMIN o RECEPCIONISTA",
+      "role": "main"
+    },
+    {
+      "from": "client_validation",
+      "to": "service",
+      "label": "entrada válida",
+      "role": "main"
+    },
+    {
+      "from": "service",
+      "to": "unique",
+      "label": "RFC y clave",
+      "role": "main"
+    },
+    {
+      "from": "unique",
+      "to": "factory",
+      "label": "sin duplicado",
+      "role": "main"
+    },
+    {
+      "from": "factory",
+      "to": "persist",
+      "label": "guardar agregado",
+      "role": "main"
+    },
+    {
+      "from": "persist",
+      "to": "result",
+      "label": "transacción confirmada",
+      "role": "return"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "Formulario",
+      "items": [
+        "Nombre, RFC mexicano, correo y estatus comercial",
+        "Calle, número, colonia, código postal, estado y municipio",
+        "Solo JPEG/PNG/GIF/BMP hasta 15 MB"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Idempotencia",
+      "items": [
+        "Idempotency-Key obligatoria y hash SHA-256 de formulario e imagen",
+        "Repetición exacta devuelve el resultado persistido",
+        "RFC o clave duplicados producen conflicto sin segunda fila"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Persistencia",
+      "items": [
+        "Factory Method centraliza el dominio de taller",
+        "UUIDv7 incluye fecha UTC derivada",
+        "La fotografía queda en el volumen workshop_uploads"
+      ]
+    }
+  ]
+}

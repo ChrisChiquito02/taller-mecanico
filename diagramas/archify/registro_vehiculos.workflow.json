@@ -1,0 +1,59 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Alta y asociación segura de vehículos",
+    "subtitle": "React valida, Spring autoriza y MySQL garantiza VIN, placa, cliente y estado",
+    "output": "diagramas/archify/registro_vehiculos.workflow.html",
+    "quality_profile": "standard",
+    "visual_preset": "blueprint"
+  },
+  "lanes": [
+    { "id": "personal", "label": "Administrador o recepción" },
+    { "id": "react", "label": "React · VehicleFacade" },
+    { "id": "api", "label": "Spring Boot · API y casos de uso" },
+    { "id": "clientes", "label": "MySQL · clientes" },
+    { "id": "vehiculos", "label": "MySQL · vehículos y fotos" },
+    { "id": "archivos", "label": "Volumen Docker · imágenes" }
+  ],
+  "phases": [
+    { "id": "seleccion", "label": "Autorización y precondición de cliente", "fromCol": 0, "toCol": 1 },
+    { "id": "validacion", "label": "Normalización y duplicados", "fromCol": 2, "toCol": 3 },
+    { "id": "registro", "label": "Factory Method y persistencia", "fromCol": 4, "toCol": 5 }
+  ],
+  "nodes": [
+    { "id": "open", "lane": "personal", "col": 0, "type": "frontend", "label": "Iniciar sesión", "width": 150 },
+    { "id": "form", "lane": "react", "col": 1, "type": "frontend", "label": "Capturar vehículo y fotos", "width": 180 },
+    { "id": "client_search", "lane": "api", "col": 2, "type": "backend", "label": "Buscar clientes activos", "width": 170 },
+    { "id": "client_lock", "lane": "clientes", "col": 3, "type": "database", "label": "Verificar y bloquear cliente", "width": 190 },
+    { "id": "regex", "lane": "react", "col": 2, "type": "security", "label": "Regex VIN placa campos fotos", "width": 190 },
+    { "id": "authorized", "lane": "api", "col": 3, "type": "security", "label": "JWT exige ADMIN o RECEPCIONISTA", "width": 210 },
+    { "id": "duplicate_check", "lane": "api", "col": 4, "type": "backend", "label": "Strategy placa y validar VIN", "width": 190 },
+    { "id": "unique_keys", "lane": "vehiculos", "col": 4, "type": "database", "label": "UNIQUE VIN y placa", "width": 170 },
+    { "id": "factory", "lane": "api", "col": 5, "type": "backend", "label": "Factory crea vehículo activo UUIDv7", "width": 250 },
+    { "id": "persist", "lane": "vehiculos", "col": 5, "type": "database", "label": "Guardar vínculo y fotos UUIDv7", "width": 225 },
+    { "id": "write_files", "lane": "archivos", "col": 5, "type": "database", "label": "Validar y persistir imágenes", "width": 215 },
+    { "id": "confirm", "lane": "react", "col": 5, "type": "frontend", "label": "Modal de éxito o error", "width": 170 },
+    { "id": "deny", "lane": "react", "col": 4, "type": "security", "label": "Denegar usuario o cliente inactivo", "width": 245 }
+  ],
+  "edges": [
+    { "from": "open", "to": "form", "label": "abrir alta", "role": "main" },
+    { "from": "form", "to": "client_search", "label": "buscar propietario", "role": "main" },
+    { "from": "client_search", "to": "client_lock", "label": "selección por UUID", "role": "main" },
+    { "from": "form", "to": "regex", "label": "captura completa", "role": "main" },
+    { "from": "regex", "to": "authorized", "label": "formato válido", "role": "main" },
+    { "from": "authorized", "to": "duplicate_check", "label": "rol autorizado y cliente activo", "role": "main" },
+    { "from": "authorized", "to": "deny", "label": "sin rol o cliente inactivo", "role": "error" },
+    { "from": "duplicate_check", "to": "unique_keys", "label": "normalizar y comprobar", "role": "main" },
+    { "from": "unique_keys", "to": "factory", "label": "sin duplicados", "role": "main" },
+    { "from": "factory", "to": "persist", "label": "crear entidad y relación", "role": "main" },
+    { "from": "persist", "to": "write_files", "label": "metadatos fotos", "role": "async" },
+    { "from": "write_files", "to": "confirm", "label": "transacción confirmada", "role": "return" },
+    { "from": "unique_keys", "to": "confirm", "label": "duplicado: conflicto", "role": "error" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Cliente activo requerido", "items": ["La búsqueda usa GET /api/clients y el catálogo solo incluye activos.", "El servicio vuelve a leer el cliente por UUID dentro de la transacción.", "Una lectura con bloqueo serializa el alta con cambios concurrentes de estado.", "Una asociación ausente o inactiva devuelve error y no registra vehículo."] },
+    { "dot": "violet", "title": "Normalización e idempotencia de unicidad", "items": ["VIN: mayúsculas, 17 caracteres, sin I, O ni Q.", "Placa: mayúsculas, se eliminan espacios y guiones; rango normalizado de 5 a 8.", "La Strategy de placas mexicanas se puede extender para una entidad o servicio concreto.", "La comprobación previa ayuda a la experiencia; índices únicos bloquean duplicados concurrentes e inactivos."] },
+    { "dot": "amber", "title": "Fotos, IDs y estado inicial", "items": ["Cada foto admite JPEG, PNG, GIF o BMP decodificable y máximo 15 MB.", "Los bytes quedan en workshop_uploads y los metadatos en vehicle_photos.", "Vehículo y fotografías reciben UUIDv7 con fecha derivada; vehicle_client_id referencia al propietario.", "mechanic_id es FK nullable a users y queda null porque no hay asignación en este módulo.", "La confirmación muestra el UUID y el estatus activo; el fallo limpia archivos recién escritos."] }
+  ]
+}

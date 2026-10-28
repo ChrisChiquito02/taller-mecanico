@@ -1,0 +1,202 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Registro y administración de clientes",
+    "subtitle": "Autorización, validación, paginación, actualización, baja lógica y relación junction",
+    "output": "diagramas/archify/clientes.workflow.html",
+    "quality_profile": "standard",
+    "visual_preset": "blueprint"
+  },
+  "lanes": [
+    {
+      "id": "staff",
+      "label": "Recepción o administración"
+    },
+    {
+      "id": "react",
+      "label": "React · facade de clientes"
+    },
+    {
+      "id": "spring",
+      "label": "Spring Boot · seguridad y servicio"
+    },
+    {
+      "id": "mysql",
+      "label": "MySQL · clientes"
+    },
+    {
+      "id": "junction",
+      "label": "MySQL · tabla junction"
+    }
+  ],
+  "phases": [
+    {
+      "label": "Captura y autorización",
+      "id": "capture",
+      "toCol": 4,
+      "fromCol": 0
+    },
+    {
+      "label": "Duplicados y persistencia",
+      "id": "persist",
+      "toCol": 5,
+      "fromCol": 5
+    }
+  ],
+  "nodes": [
+    {
+      "id": "staff_entry",
+      "col": 0,
+      "type": "frontend",
+      "label": "Abrir clientes",
+      "width": 160,
+      "lane": "staff"
+    },
+    {
+      "id": "capture_form",
+      "col": 1,
+      "type": "frontend",
+      "label": "Capturar todos los datos",
+      "width": 170,
+      "lane": "react"
+    },
+    {
+      "id": "regex",
+      "col": 2,
+      "type": "security",
+      "label": "Validar campos con regex",
+      "width": 180,
+      "lane": "react"
+    },
+    {
+      "id": "jwt_filter",
+      "col": 3,
+      "type": "security",
+      "label": "Validar JWT",
+      "width": 160,
+      "lane": "spring"
+    },
+    {
+      "id": "role_gate",
+      "col": 4,
+      "type": "security",
+      "label": "Exigir ADMIN o RECEPCIONISTA",
+      "width": 200,
+      "lane": "spring"
+    },
+    {
+      "id": "check_save",
+      "col": 5,
+      "type": "database",
+      "label": "Revisar duplicado y guardar",
+      "width": 190,
+      "lane": "mysql"
+    },
+    {
+      "id": "junction_insert",
+      "col": 5,
+      "type": "database",
+      "label": "Asociar talleres requeridos",
+      "width": 190,
+      "lane": "junction"
+    },
+    {
+      "id": "success",
+      "col": 5,
+      "type": "frontend",
+      "label": "Mostrar confirmación",
+      "width": 170,
+      "lane": "react"
+    },
+    {
+      "id": "access_denied",
+      "col": 4,
+      "type": "security",
+      "label": "Denegar acceso",
+      "width": 160,
+      "lane": "react"
+    }
+  ],
+  "edges": [
+    {
+      "role": "main",
+      "label": "nuevo o actualizar",
+      "to": "capture_form",
+      "from": "staff_entry"
+    },
+    {
+      "role": "main",
+      "label": "captura completa",
+      "to": "regex",
+      "from": "capture_form"
+    },
+    {
+      "role": "main",
+      "label": "formato válido",
+      "to": "jwt_filter",
+      "from": "regex"
+    },
+    {
+      "role": "main",
+      "label": "JWT válido",
+      "to": "role_gate",
+      "from": "jwt_filter"
+    },
+    {
+      "role": "main",
+      "label": "rol permitido",
+      "to": "check_save",
+      "from": "role_gate"
+    },
+    {
+      "role": "error",
+      "label": "sin autoridad",
+      "to": "access_denied",
+      "from": "role_gate"
+    },
+    {
+      "role": "main",
+      "label": "cliente guardado",
+      "to": "junction_insert",
+      "from": "check_save"
+    },
+    {
+      "role": "return",
+      "label": "transacción confirmada",
+      "to": "success",
+      "from": "junction_insert"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Campos obligatorios",
+      "items": [
+        "Nombre, apellidos y email",
+        "Teléfono, personal, trabajo y contacto alternativo",
+        "Contacto alternativo y dirección completa",
+        "Uno o más talleres previamente registrados"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Integridad",
+      "items": [
+        "Email único normalizado",
+        "Duplicados por nombre completo más teléfono personal",
+        "IDs UUIDv7 con fecha",
+        "soft delete excluye de páginas pero no elimina físicamente"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Acceso y página",
+      "items": [
+        "ADMIN y RECEPCIONISTA únicamente",
+        "Backend aplica LIMIT/OFFSET con página, tamaño y filtro",
+        "React presenta el paginador y actualización de datos"
+      ]
+    }
+  ]
+}

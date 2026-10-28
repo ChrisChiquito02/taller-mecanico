@@ -1,0 +1,258 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Administración lógica de roles",
+    "subtitle": "Renombrar, suspender y consultar sin borrar filas",
+    "output": "diagramas/archify/gestion_roles.workflow.html",
+    "quality_profile": "standard",
+    "visual_preset": "blueprint"
+  },
+  "lanes": [
+    {
+      "id": "usuario",
+      "label": "Usuario autenticado"
+    },
+    {
+      "id": "react",
+      "label": "React · roles facade"
+    },
+    {
+      "id": "spring",
+      "label": "Spring Boot · servicio de roles"
+    },
+    {
+      "id": "mysql",
+      "label": "MySQL · tabla roles"
+    }
+  ],
+  "phases": [
+    {
+      "id": "lectura",
+      "label": "Cargar y presentar roles",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "cambio",
+      "label": "Renombrar o suspender",
+      "fromCol": 2,
+      "toCol": 5
+    }
+  ],
+  "nodes": [
+    {
+      "id": "open",
+      "lane": "usuario",
+      "col": 0,
+      "type": "frontend",
+      "label": "Abrir roles",
+      "width": 150
+    },
+    {
+      "id": "request_list",
+      "lane": "react",
+      "col": 1,
+      "type": "backend",
+      "label": "GET /roles",
+      "width": 150
+    },
+    {
+      "id": "list_service",
+      "lane": "spring",
+      "col": 2,
+      "type": "backend",
+      "label": "Listar estados",
+      "width": 150
+    },
+    {
+      "id": "read_table",
+      "lane": "mysql",
+      "col": 3,
+      "type": "database",
+      "label": "Leer roles",
+      "width": 150
+    },
+    {
+      "id": "modal",
+      "lane": "react",
+      "col": 4,
+      "type": "frontend",
+      "label": "Ver estado lógico",
+      "width": 150
+    },
+    {
+      "id": "choose",
+      "lane": "usuario",
+      "col": 1,
+      "type": "frontend",
+      "label": "Elegir cambio",
+      "width": 150
+    },
+    {
+      "id": "rename_form",
+      "lane": "react",
+      "col": 2,
+      "type": "frontend",
+      "label": "Validar nombre",
+      "width": 150
+    },
+    {
+      "id": "rename_put",
+      "lane": "react",
+      "col": 3,
+      "type": "backend",
+      "label": "PUT /roles/{id}",
+      "width": 150
+    },
+    {
+      "id": "rename_duplicate",
+      "lane": "spring",
+      "col": 4,
+      "type": "security",
+      "label": "Comprobar nombre",
+      "width": 150
+    },
+    {
+      "id": "rename_update",
+      "lane": "mysql",
+      "col": 5,
+      "type": "database",
+      "label": "Actualizar nombre",
+      "width": 150
+    },
+    {
+      "id": "suspend_action",
+      "lane": "react",
+      "col": 5,
+      "type": "frontend",
+      "label": "PATCH status",
+      "width": 150
+    },
+    {
+      "id": "soft_delete",
+      "lane": "mysql",
+      "col": 4,
+      "type": "database",
+      "label": "active=false",
+      "width": 150
+    },
+    {
+      "id": "refresh_jwt",
+      "lane": "spring",
+      "col": 5,
+      "type": "security",
+      "label": "JWT siguiente login",
+      "width": 150
+    },
+    {
+      "id": "result",
+      "lane": "usuario",
+      "col": 5,
+      "type": "frontend",
+      "label": "Confirmar cambio",
+      "width": 150
+    }
+  ],
+  "edges": [
+    {
+      "from": "open",
+      "to": "request_list",
+      "label": "consultar",
+      "role": "main"
+    },
+    {
+      "from": "request_list",
+      "to": "list_service",
+      "role": "main"
+    },
+    {
+      "from": "list_service",
+      "to": "read_table",
+      "role": "main"
+    },
+    {
+      "from": "read_table",
+      "to": "modal",
+      "label": "filas activas e inactivas",
+      "role": "return"
+    },
+    {
+      "from": "modal",
+      "to": "choose",
+      "label": "seleccionar acción",
+      "role": "branch"
+    },
+    {
+      "from": "choose",
+      "to": "rename_form",
+      "label": "cambiar nombre",
+      "role": "branch"
+    },
+    {
+      "from": "rename_form",
+      "to": "rename_put",
+      "label": "formato válido",
+      "role": "main"
+    },
+    {
+      "from": "rename_put",
+      "to": "rename_duplicate",
+      "role": "main"
+    },
+    {
+      "from": "rename_duplicate",
+      "to": "rename_update",
+      "label": "nombre disponible",
+      "role": "main"
+    },
+    {
+      "from": "rename_update",
+      "to": "result",
+      "role": "return"
+    },
+    {
+      "from": "choose",
+      "to": "suspend_action",
+      "label": "suspender o reactivar",
+      "role": "branch"
+    },
+    {
+      "from": "suspend_action",
+      "to": "soft_delete",
+      "role": "main"
+    },
+    {
+      "from": "soft_delete",
+      "to": "refresh_jwt",
+      "label": "estado guardado",
+      "role": "async"
+    },
+    {
+      "from": "refresh_jwt",
+      "to": "result",
+      "label": "resultado guardado",
+      "role": "return"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "Soft delete",
+      "items": [
+        "Suspender cambia el campo active",
+        "La consulta sigue mostrando el rol histórico",
+        "El nombre suspendido sigue reservado para no duplicar permisos"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Edición",
+      "items": [
+        "El ID UUIDv7 y fecha no cambian",
+        "La API rechaza nombres existentes",
+        "JWT nuevos excluyen roles suspendidos"
+      ]
+    }
+  ]
+}

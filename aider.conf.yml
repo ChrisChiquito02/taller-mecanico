@@ -1,0 +1,4 @@
+# configuracion por defecto para aider con gemini
+model: gemini/gemini-1.5-pro
+auto-commits: true
+git: true

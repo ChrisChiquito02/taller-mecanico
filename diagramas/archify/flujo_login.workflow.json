@@ -1,0 +1,158 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Inicio de sesión y autorización",
+    "subtitle": "Verificación BCrypt, roles activos y filtro JWT",
+    "output": "diagramas/archify/flujo_login.workflow.html",
+    "quality_profile": "standard",
+    "visual_preset": "blueprint"
+  },
+  "lanes": [
+    {
+      "id": "usuario",
+      "label": "Personal o usuario"
+    },
+    {
+      "id": "react",
+      "label": "React · login"
+    },
+    {
+      "id": "spring",
+      "label": "Spring Boot · auth y security"
+    },
+    {
+      "id": "mysql",
+      "label": "MySQL · usuarios y roles"
+    }
+  ],
+  "phases": [
+    {
+      "id": "auth",
+      "label": "Verificar credenciales",
+      "fromCol": 0,
+      "toCol": 2
+    },
+    {
+      "id": "token",
+      "label": "Emitir y validar sesión",
+      "fromCol": 3,
+      "toCol": 5
+    }
+  ],
+  "nodes": [
+    {
+      "id": "actor",
+      "lane": "usuario",
+      "col": 0,
+      "type": "frontend",
+      "label": "Capturar credenciales",
+      "width": 150
+    },
+    {
+      "id": "form",
+      "lane": "react",
+      "col": 1,
+      "type": "frontend",
+      "label": "Validar formulario",
+      "width": 150
+    },
+    {
+      "id": "endpoint",
+      "lane": "spring",
+      "col": 2,
+      "type": "backend",
+      "label": "POST /auth/login",
+      "width": 150
+    },
+    {
+      "id": "user_query",
+      "lane": "mysql",
+      "col": 3,
+      "type": "database",
+      "label": "Buscar usuario y roles",
+      "width": 150
+    },
+    {
+      "id": "verify",
+      "lane": "spring",
+      "col": 4,
+      "type": "security",
+      "label": "Comparar BCrypt",
+      "width": 180
+    },
+    {
+      "id": "jwt",
+      "lane": "spring",
+      "col": 5,
+      "type": "security",
+      "label": "Firmar JWT con roles",
+      "width": 150
+    },
+    {
+      "id": "session",
+      "lane": "react",
+      "col": 5,
+      "type": "frontend",
+      "label": "Guardar sesión",
+      "width": 170
+    }
+  ],
+  "edges": [
+    {
+      "from": "actor",
+      "to": "form",
+      "label": "email y contraseña",
+      "role": "main"
+    },
+    {
+      "from": "form",
+      "to": "endpoint",
+      "label": "entrada válida",
+      "role": "main"
+    },
+    {
+      "from": "endpoint",
+      "to": "user_query",
+      "role": "main"
+    },
+    {
+      "from": "user_query",
+      "to": "verify",
+      "label": "usuario encontrado",
+      "role": "return"
+    },
+    {
+      "from": "verify",
+      "to": "jwt",
+      "label": "credenciales correctas",
+      "role": "main"
+    },
+    {
+      "from": "jwt",
+      "to": "session",
+      "label": "token firmado",
+      "role": "return"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Permisos",
+      "items": [
+        "Role activo se incorpora al JWT cuando inicia sesión",
+        "El filtro extrae authorities ROLE_ADMIN y ROLE_RECEPCIONISTA",
+        "Rutas de talleres y clientes rechazan a usuarios sin permiso"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Errores",
+      "items": [
+        "Respuesta genérica para email o contraseña incorrectos",
+        "La expiración de token es configurable",
+        "Sin credencial no se accede a operaciones protegidas"
+      ]
+    }
+  ]
+}

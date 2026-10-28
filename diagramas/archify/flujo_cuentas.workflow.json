@@ -1,0 +1,194 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Registro de cuenta de usuario",
+    "subtitle": "Datos personales, confirmación de contraseña, BCrypt y UUIDv7",
+    "output": "diagramas/archify/flujo_cuentas.workflow.html",
+    "quality_profile": "standard",
+    "visual_preset": "blueprint"
+  },
+  "lanes": [
+    {
+      "id": "persona",
+      "label": "Usuario"
+    },
+    {
+      "id": "frontend",
+      "label": "React · interfaz"
+    },
+    {
+      "id": "backend",
+      "label": "Spring Boot · seguridad y casos de uso"
+    },
+    {
+      "id": "database",
+      "label": "MySQL · datos persistentes"
+    }
+  ],
+  "phases": [
+    {
+      "fromCol": 0,
+      "label": "Capturar y validar cuenta",
+      "id": "captura",
+      "toCol": 2
+    },
+    {
+      "fromCol": 3,
+      "label": "Normalizar y persistir",
+      "id": "persistencia",
+      "toCol": 5
+    }
+  ],
+  "nodes": [
+    {
+      "id": "captura",
+      "lane": "persona",
+      "col": 0,
+      "type": "frontend",
+      "label": "Nombre y contacto",
+      "yOffset": -55.0,
+      "width": 150
+    },
+    {
+      "id": "validacion",
+      "lane": "frontend",
+      "col": 1,
+      "type": "frontend",
+      "label": "Regex y contraseñas",
+      "yOffset": -55.0,
+      "width": 150
+    },
+    {
+      "id": "api_auth",
+      "lane": "frontend",
+      "col": 2,
+      "type": "backend",
+      "label": "POST auth/register",
+      "width": 150
+    },
+    {
+      "id": "validar_backend",
+      "lane": "backend",
+      "col": 3,
+      "type": "security",
+      "label": "Validar entrada",
+      "width": 150
+    },
+    {
+      "id": "hash",
+      "lane": "backend",
+      "col": 4,
+      "type": "security",
+      "label": "BCrypt",
+      "yOffset": -55.0,
+      "width": 150
+    },
+    {
+      "id": "alta_usuario",
+      "lane": "backend",
+      "col": 2,
+      "type": "backend",
+      "label": "Crear UUIDv7",
+      "yOffset": -110,
+      "width": 150
+    },
+    {
+      "id": "persistencia",
+      "lane": "database",
+      "col": 3,
+      "type": "database",
+      "label": "Guardar cuenta",
+      "yOffset": -55.0,
+      "width": 150
+    },
+    {
+      "id": "respuesta_jwt",
+      "lane": "backend",
+      "col": 5,
+      "type": "security",
+      "label": "Emitir JWT",
+      "width": 150
+    },
+    {
+      "id": "guardar_sesion",
+      "lane": "frontend",
+      "col": 5,
+      "type": "frontend",
+      "label": "Alta confirmada",
+      "yOffset": -55.0,
+      "width": 150
+    }
+  ],
+  "edges": [
+    {
+      "from": "captura",
+      "to": "validacion",
+      "label": "enviar formulario",
+      "role": "main"
+    },
+    {
+      "from": "validacion",
+      "to": "api_auth",
+      "label": "entrada válida",
+      "role": "main"
+    },
+    {
+      "from": "api_auth",
+      "to": "validar_backend",
+      "label": "petición",
+      "role": "main"
+    },
+    {
+      "from": "validar_backend",
+      "to": "alta_usuario",
+      "label": "registro válido",
+      "role": "main"
+    },
+    {
+      "from": "alta_usuario",
+      "to": "hash",
+      "label": "crear cuenta sin rol",
+      "role": "main"
+    },
+    {
+      "from": "hash",
+      "to": "persistencia",
+      "label": "hash y perfil",
+      "role": "main"
+    },
+    {
+      "from": "persistencia",
+      "to": "respuesta_jwt",
+      "label": "alta persistida",
+      "role": "return"
+    },
+    {
+      "from": "respuesta_jwt",
+      "to": "guardar_sesion",
+      "label": "token y usuario",
+      "role": "return"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "violet",
+      "title": "Entrada requerida",
+      "items": [
+        "Nombre, apellido, teléfono y correo electrónico",
+        "Contraseña y confirmación coincidentes",
+        "Frontend usa expresiones regulares antes del POST"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Cuenta persistida",
+      "items": [
+        "Email normalizado y único",
+        "BCrypt nunca guarda la contraseña original",
+        "UUIDv7 y su fecha UTC se conservan",
+        "El registro público no asigna roles"
+      ]
+    }
+  ]
+}

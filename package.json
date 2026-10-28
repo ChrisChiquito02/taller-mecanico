@@ -1,0 +1,8 @@
+{
+  "name": "taller-mecanico",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "diagrams:build": "node scripts/render-diagrams.mjs"
+  }
+}

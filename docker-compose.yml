@@ -1,0 +1,54 @@
+services:
+  mysql:
+    image: mysql:latest
+    container_name: taller-mecanico-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: taller_mecanico
+      MYSQL_USER: taller
+      MYSQL_PASSWORD: ${DB_PASSWORD:-tis123456}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-tis123456}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$${MYSQL_ROOT_PASSWORD}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  backend:
+    build: ./backend
+    container_name: taller-mecanico-api
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/taller_mecanico?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: taller
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-cambia_esta_clave}
+      APP_JWT_SECRET: ${JWT_SECRET:-cambia-esta-clave-jwt-segura-de-al-menos-32-caracteres}
+      APP_FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      APP_RESET_TOKEN_MINUTES: ${RESET_TOKEN_MINUTES:-30}
+      POSTALKIT_API_KEY: ${POSTALKIT_API_KEY:-}
+      WORKSHOP_UPLOAD_DIR: /app/uploads
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - workshop_uploads:/app/uploads
+
+  frontend:
+    build: ./frontend
+    container_name: taller-mecanico-web
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
+  workshop_uploads:

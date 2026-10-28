@@ -1,0 +1,175 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Autocompletado bidireccional de dirección",
+    "subtitle": "PostalKit como proxy autenticado; CP y geografía completan el formulario",
+    "output": "diagramas/archify/catalogo_postal.workflow.html",
+    "quality_profile": "standard",
+    "visual_preset": "blueprint"
+  },
+  "lanes": [
+    {
+      "id": "persona",
+      "label": "Personal del taller"
+    },
+    {
+      "id": "react",
+      "label": "React · formulario de taller"
+    },
+    {
+      "id": "spring",
+      "label": "Spring Boot · proxy postal"
+    },
+    {
+      "id": "postal",
+      "label": "API PostalKit · SEPOMEX"
+    }
+  ],
+  "phases": [
+    {
+      "id": "lookup",
+      "label": "Consultar por código postal",
+      "fromCol": 0,
+      "toCol": 2
+    },
+    {
+      "id": "reverse",
+      "label": "Resolver código postal inverso",
+      "fromCol": 3,
+      "toCol": 5
+    }
+  ],
+  "nodes": [
+    {
+      "id": "code_entry",
+      "lane": "persona",
+      "col": 0,
+      "type": "frontend",
+      "label": "Capturar CP válido",
+      "width": 170
+    },
+    {
+      "id": "form",
+      "lane": "react",
+      "col": 1,
+      "type": "frontend",
+      "label": "Validar formato del CP",
+      "width": 160
+    },
+    {
+      "id": "proxy",
+      "lane": "spring",
+      "col": 2,
+      "type": "security",
+      "label": "Consultar catálogo Bearer",
+      "width": 170
+    },
+    {
+      "id": "provider",
+      "lane": "postal",
+      "col": 3,
+      "type": "external",
+      "label": "Estado, municipio, colonias",
+      "width": 190
+    },
+    {
+      "id": "fill",
+      "lane": "react",
+      "col": 4,
+      "type": "frontend",
+      "label": "Autocompletar dirección",
+      "width": 160
+    },
+    {
+      "id": "geography",
+      "lane": "persona",
+      "col": 3,
+      "type": "frontend",
+      "label": "Elegir ubicación postal",
+      "width": 190
+    },
+    {
+      "id": "search_proxy",
+      "lane": "spring",
+      "col": 4,
+      "type": "backend",
+      "label": "Buscar CP por geografía",
+      "width": 170
+    },
+    {
+      "id": "set_code",
+      "lane": "react",
+      "col": 5,
+      "type": "frontend",
+      "label": "Asignar código postal",
+      "width": 160
+    }
+  ],
+  "edges": [
+    {
+      "from": "code_entry",
+      "to": "form",
+      "role": "main"
+    },
+    {
+      "from": "form",
+      "to": "proxy",
+      "label": "CP válido",
+      "role": "main"
+    },
+    {
+      "from": "proxy",
+      "to": "provider",
+      "label": "clave solo backend",
+      "role": "async"
+    },
+    {
+      "from": "provider",
+      "to": "fill",
+      "label": "datos postales",
+      "role": "return"
+    },
+    {
+      "from": "geography",
+      "to": "search_proxy",
+      "label": "selección completa",
+      "role": "main"
+    },
+    {
+      "from": "search_proxy",
+      "to": "set_code",
+      "label": "resultado de búsqueda",
+      "role": "return"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Búsqueda por CP",
+      "items": [
+        "Consulta GET /catalog/postal-codes/{code}",
+        "Completa estado, municipio y lista de colonias",
+        "El usuario termina la colonia cuando el código tiene varias opciones"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Búsqueda inversa",
+      "items": [
+        "Consulta GET /catalog/postal-codes/search",
+        "Envía estado, municipio y colonia seleccionados",
+        "Asigna el CP encontrado sin exponer la clave del proveedor"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Credencial",
+      "items": [
+        "POSTALKIT_API_KEY se guarda en .env",
+        "Sin la clave, los endpoints postales responden 503",
+        "La integración mantiene resultados en caché en memoria"
+      ]
+    }
+  ]
+}

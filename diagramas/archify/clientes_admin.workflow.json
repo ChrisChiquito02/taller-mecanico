@@ -1,0 +1,172 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Administración paginada de clientes",
+    "subtitle": "Paginación backend y frontend, búsqueda, edición y baja lógica",
+    "output": "diagramas/archify/clientes_admin.workflow.html",
+    "quality_profile": "standard",
+    "visual_preset": "blueprint"
+  },
+  "lanes": [
+    {
+      "id": "staff",
+      "label": "Administrador o recepcionista"
+    },
+    {
+      "id": "react",
+      "label": "React · ClientFacade"
+    },
+    {
+      "id": "api",
+      "label": "Spring Boot · clientes"
+    },
+    {
+      "id": "mysql",
+      "label": "MySQL · clients"
+    }
+  ],
+  "phases": [
+    {
+      "id": "query",
+      "label": "Consultar una página activa",
+      "fromCol": 0,
+      "toCol": 2
+    },
+    {
+      "id": "manage",
+      "label": "Actualizar o suspender registro",
+      "fromCol": 3,
+      "toCol": 5
+    }
+  ],
+  "nodes": [
+    {
+      "id": "open",
+      "lane": "staff",
+      "col": 0,
+      "type": "frontend",
+      "label": "Abrir directorio",
+      "width": 180
+    },
+    {
+      "id": "filters",
+      "lane": "react",
+      "col": 1,
+      "type": "frontend",
+      "label": "Filtrar y cambiar página",
+      "width": 170
+    },
+    {
+      "id": "page_api",
+      "lane": "api",
+      "col": 2,
+      "type": "backend",
+      "label": "GET paginado de clientes",
+      "width": 180
+    },
+    {
+      "id": "page_sql",
+      "lane": "mysql",
+      "col": 3,
+      "type": "database",
+      "label": "SQL LIMIT y OFFSET",
+      "width": 180
+    },
+    {
+      "id": "table",
+      "lane": "react",
+      "col": 4,
+      "type": "frontend",
+      "label": "Mostrar tabla y acciones",
+      "width": 170
+    },
+    {
+      "id": "edit",
+      "lane": "staff",
+      "col": 4,
+      "type": "frontend",
+      "label": "Editar datos o suspender",
+      "width": 170
+    },
+    {
+      "id": "update_api",
+      "lane": "api",
+      "col": 5,
+      "type": "security",
+      "label": "PUT o DELETE lógico",
+      "width": 160
+    },
+    {
+      "id": "persist",
+      "lane": "mysql",
+      "col": 5,
+      "type": "database",
+      "label": "UPDATE datos o active=false",
+      "width": 180
+    }
+  ],
+  "edges": [
+    {
+      "from": "open",
+      "to": "filters",
+      "role": "main"
+    },
+    {
+      "from": "filters",
+      "to": "page_api",
+      "label": "GET con filtros",
+      "role": "main"
+    },
+    {
+      "from": "page_api",
+      "to": "page_sql",
+      "label": "página validada",
+      "role": "main"
+    },
+    {
+      "from": "page_sql",
+      "to": "table",
+      "label": "content y metadatos",
+      "role": "return"
+    },
+    {
+      "from": "table",
+      "to": "edit",
+      "label": "selección de acción",
+      "role": "branch"
+    },
+    {
+      "from": "edit",
+      "to": "update_api",
+      "label": "datos validados",
+      "role": "main"
+    },
+    {
+      "from": "update_api",
+      "to": "persist",
+      "label": "guardar cambio lógico",
+      "role": "main"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Paginación en ambas capas",
+      "items": [
+        "Frontend solicita page y size=10 y muestra controles anterior/siguiente",
+        "Backend limita tamaño máximo a 100 y ordena por fecha UUIDv7",
+        "Respuesta estable incluye content, number, size, totalElements y totalPages"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Administración",
+      "items": [
+        "Formulario precarga y actualiza los campos completos",
+        "Suspender usa DELETE lógico y fija active=false",
+        "Listado excluye suspendidos; MySQL conserva clientes y relaciones"
+      ]
+    }
+  ]
+}
